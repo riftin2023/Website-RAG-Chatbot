@@ -1,44 +1,48 @@
 # Module 5: Embeddings
 
-Goal: understand semantic search by converting website chunks into vectors and comparing embedding models.
+This module compares two embedding models for semantic search:
 
-## Flow
+- `experiment/MiniLM`: `sentence-transformers/all-MiniLM-L6-v2`
+- `experiment/BGE-Small`: `BAAI/bge-small-en-v1.5`
+
+## Pipeline
 
 ```text
-Website documents -> chunks -> embeddings -> cosine similarity search
+Website URL -> scrape documents -> preprocess text -> chunk text -> embeddings -> cosine similarity search
 ```
 
-## Experiment branches
+## Run
 
-- `experiment/MiniLM`
-- `experiment/BGE-Small`
-
-Both branches use the same code. Only `backend/embedding_config.py` changes.
-
-## Run benchmark
-
-From `backend/`:
+From the project root:
 
 ```powershell
-python benchmark_embeddings.py "https://example.com" --query "What does this website explain?"
+python backend/benchmark_embeddings.py "https://example.com" --query "What is this website about?"
 ```
 
-The script saves:
+Or from `backend/`:
+
+```powershell
+python benchmark_embeddings.py "https://example.com" --query "What is this website about?"
+```
+
+## Outputs
+
+The benchmark writes:
 
 ```text
 artifacts/embeddings/document_embeddings.npy
+artifacts/embeddings/chunks.json
 artifacts/embeddings/embedding_benchmark.json
 ```
 
-## Compare
+## Merge decision
 
-Use these metrics:
+Compare both branches using the same website and query. Choose the branch with:
 
-- `embedding_seconds`: lower is faster
-- `query_seconds`: lower is faster
-- `chunk_count`: should be the same for both branches
-- `top_results`: manually inspect relevance
-- `embedding_dimension`: smaller is usually cheaper
+- better top result relevance
+- lower `document_embedding_seconds`
+- lower `query_embedding_seconds`
+- acceptable embedding dimension and memory usage
 
-Merge the branch that gives the best relevance with acceptable speed.
+MiniLM is usually faster and lighter. BGE Small often gives stronger retrieval quality.
 

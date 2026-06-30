@@ -1,6 +1,6 @@
 requests
 beautifulsoup4
 urllib3
-sentence-transformers
 numpy
+sentence-transformers
 
