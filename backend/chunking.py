@@ -1,5 +1,11 @@
 class TextChunker:
     def __init__(self, chunk_size=500, chunk_overlap=80):
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be greater than 0.")
+
+        if chunk_overlap < 0:
+            raise ValueError("chunk_overlap cannot be negative.")
+
         if chunk_overlap >= chunk_size:
             raise ValueError("chunk_overlap must be smaller than chunk_size.")
 
@@ -32,10 +38,10 @@ class TextChunker:
     def chunk_documents(self, documents):
         chunked_documents = []
 
-        for document_index, document in enumerate(documents):
+        for document_index, document in enumerate(documents, start=1):
             chunks = self.chunk_text(document.get("text", ""))
 
-            for chunk_index, chunk in enumerate(chunks):
+            for chunk_index, chunk in enumerate(chunks, start=1):
                 chunked_documents.append(
                     {
                         "id": f"doc-{document_index}-chunk-{chunk_index}",

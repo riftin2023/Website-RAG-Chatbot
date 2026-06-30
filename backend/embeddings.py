@@ -9,7 +9,7 @@ class EmbeddingGenerator:
         self.model_name = model_name
         self.model = SentenceTransformer(model_name)
 
-    def generate_embeddings(self, texts):
+    def encode(self, texts):
         started_at = time.perf_counter()
         embeddings = self.model.encode(
             texts,
@@ -25,20 +25,19 @@ class EmbeddingGenerator:
 def cosine_similarity(query_embedding, document_embeddings):
     query = np.asarray(query_embedding, dtype="float32")
     documents = np.asarray(document_embeddings, dtype="float32")
+    return documents @ query
 
-    return np.dot(documents, query)
 
-
-def top_k_similar(query_embedding, document_embeddings, chunks, k=5):
+def semantic_search(query_embedding, document_embeddings, chunks, top_k=5):
     scores = cosine_similarity(query_embedding, document_embeddings)
-    ranked_indexes = np.argsort(scores)[::-1][:k]
+    ranked_indexes = np.argsort(scores)[::-1][:top_k]
 
     results = []
 
     for index in ranked_indexes:
-        result = dict(chunks[int(index)])
-        result["score"] = float(scores[int(index)])
-        results.append(result)
+        chunk = dict(chunks[int(index)])
+        chunk["score"] = float(scores[int(index)])
+        results.append(chunk)
 
     return results
 
