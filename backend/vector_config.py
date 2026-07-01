@@ -1,0 +1,3 @@
+VECTOR_DB = "faiss"
+VECTOR_DB_LABEL = "FAISS"
+
