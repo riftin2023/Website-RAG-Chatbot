@@ -1,0 +1,62 @@
+{
+  "vector_db": "chromadb",
+  "vector_db_label": "ChromaDB",
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_model_label": "MiniLM",
+  "url": "https://stthomascollege.ac.in/",
+  "query": "What courses are offered?",
+  "document_count": 1,
+  "chunk_count": 10,
+  "embedding_dimension": 384,
+  "embedding_seconds": 0.49727459996938705,
+  "query_embedding_seconds": 0.01422650000313297,
+  "index_seconds": 0.08689820003928617,
+  "search_seconds": 0.007900500029791147,
+  "top_results": [
+    {
+      "url": "https://stthomascollege.ac.in/",
+      "chunk_index": 3,
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "id": "doc-1-chunk-3",
+      "text": "nd Communication EngineeringAnnual Intake: 30 seatsLearn moreB.TechComputer Science and Engineering (AI ML)Annual Intake: 60 seatsLearn moreB.TechComputer Science and Engineering (DATA SCIENCE)Annual Intake: 60 seatsLearn moreB.TechAgriculture EngineeringAnnual Intake: 60 seatsLearn moree-Bulletin NewsletterEXCLUSIVECampus Placements 2026Top RecruitersAboutSt. Thomas college of Engineering Technology was established by St. Thomas educational society, Adoor Tower- Adoor with an aim of providing q",
+      "distance": 1.3158081769943237,
+      "score": -0.31580817699432373
+    },
+    {
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "url": "https://stthomascollege.ac.in/",
+      "chunk_index": 6,
+      "id": "doc-1-chunk-6",
+      "text": "Manager of Kwality Ice cream, UAE).Learn MoreNews EventsPlacement Success: 13 Mechanical Engineering Students Secured Offers at Brakes IndiaFirst placement of 2026-Ben S George placed in Carestack (based on internship)- CSE. With a package of 11 Lac. CongratulationsJeevan Raksha 3.0 Blood Donation CampDepartment of Civil Engineering organizes 5 days online Faculty Development Programme on Innovations in Resilient Infrastructures: Analysis, design and Adaptation on 14th to 20th June 2025View AllS",
+      "distance": 1.3891253471374512,
+      "score": -0.38912534713745117
+    },
+    {
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "url": "https://stthomascollege.ac.in/",
+      "chunk_index": 4,
+      "id": "doc-1-chunk-4",
+      "text": "by St. Thomas educational society, Adoor Tower- Adoor with an aim of providing quality higher education at par with international standards. The Members of the society comprising of experienced persons from the field of education, engineering, medicine, business etc who have proven track records by the establishment of Carmel engineering college, Perunad, Ranni, St. Thomas college of engineering Technology, Sivapuram- Kannur and Travancore International School, Adoor.The governing body of the so",
+      "distance": 1.3936272859573364,
+      "score": -0.3936272859573364
+    },
+    {
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "chunk_index": 1,
+      "url": "https://stthomascollege.ac.in/",
+      "id": "doc-1-chunk-1",
+      "text": "St. Thomas College Of Engineering Best Engineering College in KeralaSkip to main contentUPDATESPlastic waste collection drive at Alappuzha BeachTwo Day Workshop on TOTAL STATION SURVEYINGAdmission OpenANNOUNCEMENTSGet ready to witness the ultimate fusion of tech, talent, and transition at Yvidh 2k26Publication of Results First Semester B.Tech Degree Examination (Supplementary) January 2026 (STC 2025 Scheme)Compliance Report in respect of Public Self- DisclosureFormation of Dept of Agriculture En",
+      "distance": 1.4118530750274658,
+      "score": -0.4118530750274658
+    },
+    {
+      "url": "https://stthomascollege.ac.in/",
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "chunk_index": 8,
+      "id": "doc-1-chunk-8",
+      "text": "ustry and academic interactions.M3 : Social ConnectOrganize socially relevant outreach programs for the benefit of humanity.Dr. C. Sathish KumarPrincipalPrincipals MessageAt the St.Thomas College of Engineering Technology we are committed to provide a vibrant place for engineering students, budding entrepreneurs, excellent researchers and exceptional teachers who find continuous inspiration and guidance to play a key role in creating an ambience for the conception of new ideas, knowledge and gra",
+      "distance": 1.420130729675293,
+      "score": -0.42013072967529297
+    }
+  ]
+}

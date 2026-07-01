@@ -1,0 +1,53 @@
+{
+  "model_label": "MiniLM",
+  "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "url": "https://stthomascollege.ac.in/",
+  "query": "What courses are offered?",
+  "document_count": 1,
+  "chunk_count": 10,
+  "embedding_dimension": 384,
+  "document_embedding_seconds": 0.5394278000458144,
+  "query_embedding_seconds": 0.017332900024484843,
+  "top_results": [
+    {
+      "id": "doc-1-chunk-6",
+      "url": "https://stthomascollege.ac.in/",
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "text": "ce cream, UAE).Learn MoreNews EventsPlacement Success: 13 Mechanical Engineering Students Secured Offers at Brakes IndiaFirst placement of 2026-Ben S George placed in Carestack (based on internship)- CSE. With a package of 11 Lac. CongratulationsJeevan Raksha 3.0 Blood Donation CampDepartment of Civil Engineering organizes 5 days online Faculty Development Programme on Innovations in Resilient Infrastructures: Analysis, design and Adaptation on 14th to 20th June 2025View AllSt. Thomas CollegeVis",
+      "chunk_index": 6,
+      "score": 0.3415583372116089
+    },
+    {
+      "id": "doc-1-chunk-3",
+      "url": "https://stthomascollege.ac.in/",
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "text": "ineeringAnnual Intake: 30 seatsLearn moreB.TechComputer Science and Engineering (AI ML)Annual Intake: 60 seatsLearn moreB.TechComputer Science and Engineering (DATA SCIENCE)Annual Intake: 60 seatsLearn moreB.TechAgriculture EngineeringAnnual Intake: 60 seatsLearn moree-Bulletin NewsletterEXCLUSIVECampus Placements 2026Top RecruitersAboutSt. Thomas college of Engineering Technology was established by St. Thomas educational society, Adoor Tower- Adoor with an aim of providing quality higher educat",
+      "chunk_index": 3,
+      "score": 0.33876556158065796
+    },
+    {
+      "id": "doc-1-chunk-8",
+      "url": "https://stthomascollege.ac.in/",
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "text": "nteractions.M3 : Social ConnectOrganize socially relevant outreach programs for the benefit of humanity.Dr. C. Sathish KumarPrincipalPrincipals MessageAt the St.Thomas College of Engineering Technology we are committed to provide a vibrant place for engineering students, budding entrepreneurs, excellent researchers and exceptional teachers who find continuous inspiration and guidance to play a key role in creating an ambience for the conception of new ideas, knowledge and graduate the future glo",
+      "chunk_index": 8,
+      "score": 0.30253034830093384
+    },
+    {
+      "id": "doc-1-chunk-1",
+      "url": "https://stthomascollege.ac.in/",
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "text": "St. Thomas College Of Engineering Best Engineering College in KeralaUPDATESPlastic waste collection drive at Alappuzha BeachTwo Day Workshop on TOTAL STATION SURVEYINGAdmission OpenANNOUNCEMENTSGet ready to witness the ultimate fusion of tech, talent, and transition at Yvidh 2k26Publication of Results First Semester B.Tech Degree Examination (Supplementary) January 2026 (STC 2025 Scheme)Compliance Report in respect of Public Self- DisclosureFormation of Dept of Agriculture Engineering under Govt",
+      "chunk_index": 1,
+      "score": 0.287538081407547
+    },
+    {
+      "id": "doc-1-chunk-9",
+      "url": "https://stthomascollege.ac.in/",
+      "title": "St. Thomas College Of Engineering | Best Engineering College in Kerala",
+      "text": "ambience for the conception of new ideas, knowledge and graduate the future global leaders.The technical education in 21st Century demands the inevitability of technology adoption, emphasise its dynamic nature and the need for continuous updates and the trend is towards more of integration with industry interaction and orientation. Here in this engineering college, we are dedicated to bridge the present education system to meet the future challenges of career professionals and ever-changing tec",
+      "chunk_index": 9,
+      "score": 0.2812145948410034
+    }
+  ]
+}
