@@ -3,6 +3,4 @@ beautifulsoup4
 urllib3
 numpy
 sentence-transformers
-faiss-cpu
-chromadb
 
