@@ -1,7 +1,7 @@
 import time
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer  # type: ignore[import]
 
 
 class EmbeddingGenerator:
@@ -40,4 +40,5 @@ def semantic_search(query_embedding, document_embeddings, chunks, top_k=5):
         results.append(chunk)
 
     return results
+
 
