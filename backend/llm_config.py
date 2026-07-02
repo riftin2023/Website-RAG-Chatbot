@@ -1,8 +1,8 @@
 import os
 
 
-LLM_PROVIDER = "gemini"
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-GEMINI_TEMPERATURE = float(os.getenv("GEMINI_TEMPERATURE", "0.2"))
-GEMINI_MAX_CONTEXT_CHARS = int(os.getenv("GEMINI_MAX_CONTEXT_CHARS", "8000"))
+LLM_PROVIDER = "openai"
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.2"))
+OPENAI_MAX_CONTEXT_CHARS = int(os.getenv("OPENAI_MAX_CONTEXT_CHARS", "8000"))
 
