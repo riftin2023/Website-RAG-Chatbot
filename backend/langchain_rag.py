@@ -59,7 +59,7 @@ class LangChainRAGPipeline:
             return None
 
         return ChatGoogleGenerativeAI(
-            model=os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
             google_api_key=api_key,
             temperature=0,
         )
@@ -148,4 +148,5 @@ class LangChainRAGPipeline:
             "The most relevant website context is:\n\n"
             f"{context[:1200]}"
         )
+
 

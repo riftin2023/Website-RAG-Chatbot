@@ -29,26 +29,24 @@ class GeminiAnswerGenerator:
         self.model_name = model_name
         self.temperature = temperature
         self.max_context_chars = max_context_chars
-        self.model = self._build_model()
+        self.client = self._build_client()
 
-    def _build_model(self):
+    def _build_client(self):
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
         if not api_key:
             return None
 
         try:
-            import google.generativeai as genai  # type: ignore[import]
+            from google import genai  # type: ignore[import]
+            from google.genai import types  # type: ignore[import]
         except ImportError:
             return None
 
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel(
-            model_name=self.model_name,
-            generation_config={
-                "temperature": self.temperature,
-            },
-        )
+        return {
+            "client": genai.Client(api_key=api_key),
+            "types": types,
+        }
 
     def generate(self, question, context):
         question = question.strip()
@@ -62,7 +60,7 @@ class GeminiAnswerGenerator:
             question=question,
         )
 
-        if self.model is None:
+        if self.client is None:
             return {
                 "answer": self._fallback_answer(context),
                 "used_llm": False,
@@ -70,7 +68,13 @@ class GeminiAnswerGenerator:
                 "temperature": self.temperature,
             }
 
-        response = self.model.generate_content(prompt)
+        response = self.client["client"].models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=self.client["types"].GenerateContentConfig(
+                temperature=self.temperature,
+            ),
+        )
 
         return {
             "answer": getattr(response, "text", "").strip(),
@@ -88,4 +92,3 @@ class GeminiAnswerGenerator:
             "fallback. Relevant context:\n\n"
             f"{context[:1200]}"
         )
-

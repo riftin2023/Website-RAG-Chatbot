@@ -26,7 +26,7 @@ $env:GEMINI_API_KEY="your_gemini_api_key"
 Optional:
 
 ```powershell
-$env:GEMINI_MODEL="gemini-1.5-flash"
+$env:GEMINI_MODEL="gemini-2.0-flash"
 $env:GEMINI_TEMPERATURE="0.2"
 $env:GEMINI_MAX_CONTEXT_CHARS="8000"
 ```
@@ -68,4 +68,5 @@ Compare:
 - latency
 - setup complexity
 - cost/free-tier suitability
+
 
