@@ -4,11 +4,18 @@ import chromadb  # type: ignore[import]
 
 
 class ChromaVectorStore:
-    def __init__(self, persist_dir, collection_name="website_chunks"):
+    def __init__(self, persist_dir, collection_name="website_chunks", reset=False):
         persist_dir = Path(persist_dir)
         persist_dir.mkdir(parents=True, exist_ok=True)
 
         self.client = chromadb.PersistentClient(path=str(persist_dir))
+
+        if reset:
+            try:
+                self.client.delete_collection(collection_name)
+            except Exception:
+                pass
+
         self.collection = self.client.get_or_create_collection(collection_name)
 
     def add(self, embeddings, chunks):
@@ -55,5 +62,6 @@ class ChromaVectorStore:
 
     def save(self, output_dir):
         Path(output_dir).mkdir(parents=True, exist_ok=True)
+
 
 

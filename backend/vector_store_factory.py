@@ -1,7 +1,7 @@
 from vector_config import VECTOR_DB
 
 
-def create_vector_store(embedding_dimension, output_dir):
+def create_vector_store(embedding_dimension, output_dir, reset=False):
     if VECTOR_DB == "faiss":
         from vector_stores.faiss_store import FaissVectorStore
 
@@ -10,7 +10,8 @@ def create_vector_store(embedding_dimension, output_dir):
     if VECTOR_DB == "chromadb":
         from vector_stores.chroma_store import ChromaVectorStore
 
-        return ChromaVectorStore(persist_dir=output_dir / "chroma")
+        return ChromaVectorStore(persist_dir=output_dir / "chroma", reset=reset)
 
     raise ValueError(f"Unsupported vector database: {VECTOR_DB}")
+
 

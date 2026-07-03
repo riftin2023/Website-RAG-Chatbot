@@ -13,7 +13,7 @@ from vector_store_factory import create_vector_store
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "artifacts" / "full_rag"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "artifacts" / "vector_db"
 
 
 def build_parser():
@@ -94,6 +94,7 @@ class FullRAGPipeline:
         vector_store = create_vector_store(
             embedding_dimension=int(embeddings.shape[1]),
             output_dir=vector_output_dir,
+            reset=True,
         )
         vector_store.add(embeddings, chunks)
         vector_store.save(vector_output_dir)
@@ -176,4 +177,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
