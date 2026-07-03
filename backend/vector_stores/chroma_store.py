@@ -23,7 +23,7 @@ class ChromaVectorStore:
             for chunk in chunks
         ]
 
-        self.collection.add(
+        self.collection.upsert(
             ids=ids,
             embeddings=embeddings.tolist(),
             documents=documents,
@@ -55,4 +55,5 @@ class ChromaVectorStore:
 
     def save(self, output_dir):
         Path(output_dir).mkdir(parents=True, exist_ok=True)
+
 
