@@ -14,9 +14,9 @@ Question -> Retriever -> Prompt -> LLM -> Answer with sources
 - Vector DB: ChromaDB
 - Retrieval: Top-k semantic search
 - Prompt/chain layer: LangChain
-- LLM: Gemini through LangChain when `GEMINI_API_KEY` or `GOOGLE_API_KEY` is configured
+- LLM: Groq
 
-If no LLM key is configured, the pipeline returns a retrieval-only fallback answer using the top retrieved context.
+If no Groq key is configured, the pipeline returns a retrieval-only fallback answer using the top retrieved context.
 
 ## Prerequisite
 
@@ -43,8 +43,8 @@ python backend/rag_answer.py "What courses are offered?" --json
 Optional `.env` values:
 
 ```text
-GEMINI_API_KEY=your_api_key
-GEMINI_MODEL=gemini-1.5-flash
+GROQ_API_KEY=your_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 ```
 
 ## LangChain vs LlamaIndex
@@ -54,7 +54,7 @@ LangChain is integrated on `main`.
 Use a separate branch for LlamaIndex:
 
 ```powershell
-git switch -c experiment/llamaindex
+git switch experiment/llamaindex
 ```
 
 Compare:

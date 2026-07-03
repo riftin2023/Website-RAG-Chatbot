@@ -1,12 +1,7 @@
-import os
 from pathlib import Path
 
+from groq_generator import GroqAnswerGenerator
 from retriever import DEFAULT_CHROMA_DIR, Retriever
-
-try:
-    from dotenv import load_dotenv
-except ImportError:
-    load_dotenv = None
 
 try:
     from langchain_core.output_parsers import StrOutputParser
@@ -16,10 +11,6 @@ except ImportError:
     StrOutputParser = None
     PromptTemplate = None
     RunnableLambda = None
-
-
-if load_dotenv:
-    load_dotenv()
 
 
 RAG_PROMPT_TEMPLATE = """
@@ -44,39 +35,21 @@ class LangChainRAGPipeline:
             top_k=top_k,
         )
         self.top_k = top_k
-        self.llm = self._build_llm()
+        self.groq_generator = GroqAnswerGenerator()
         self.chain = self._build_chain()
-
-    def _build_llm(self):
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-
-        if not api_key:
-            return None
-
-        try:
-            from langchain_google_genai import ChatGoogleGenerativeAI
-        except ImportError:
-            return None
-
-        return ChatGoogleGenerativeAI(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
-            google_api_key=api_key,
-            temperature=0,
-        )
 
     def _build_chain(self):
         if PromptTemplate is None or RunnableLambda is None:
             return None
 
         prompt = PromptTemplate.from_template(RAG_PROMPT_TEMPLATE)
+        return prompt | RunnableLambda(self._generate_with_groq) | self._output_parser()
 
-        if self.llm is None:
-            return prompt | RunnableLambda(self._fallback_answer)
-
+    def _output_parser(self):
         if StrOutputParser is None:
-            return prompt | self.llm
+            return RunnableLambda(lambda value: value)
 
-        return prompt | self.llm | StrOutputParser()
+        return StrOutputParser()
 
     def ask(self, question, top_k=None):
         retrieval = self.retriever.retrieve(question, top_k=top_k or self.top_k)
@@ -88,7 +61,7 @@ class LangChainRAGPipeline:
         }
 
         if self.chain is None:
-            answer = self._fallback_answer(inputs)
+            answer = self._generate_with_groq(inputs)
         else:
             answer = self.chain.invoke(inputs)
 
@@ -99,8 +72,15 @@ class LangChainRAGPipeline:
             "query_embedding_seconds": retrieval["query_embedding_seconds"],
             "sources": self._format_sources(retrieval["results"]),
             "chunks": retrieval["results"],
-            "used_llm": self.llm is not None,
+            "used_llm": self.groq_generator.client is not None,
         }
+
+    def _generate_with_groq(self, inputs):
+        generation = self.groq_generator.generate(
+            question=inputs.get("question", ""),
+            context=inputs.get("context", ""),
+        )
+        return generation["answer"]
 
     def _format_context(self, chunks):
         if not chunks:
@@ -136,17 +116,4 @@ class LangChainRAGPipeline:
                 sources.append(source)
 
         return sources
-
-    def _fallback_answer(self, inputs):
-        context = inputs.get("context", "").strip()
-
-        if not context or context == "No relevant context was retrieved.":
-            return "I do not know based on the provided website content."
-
-        return (
-            "LLM credentials are not configured, so this is a retrieval-only answer. "
-            "The most relevant website context is:\n\n"
-            f"{context[:1200]}"
-        )
-
 
