@@ -1,194 +1,217 @@
-const API_BASE_URL = "http://127.0.0.1:5000";
+const BACKEND_URL = 'http://127.0.0.1:5000';
 
-const crawlForm = document.querySelector("#crawl-form");
-const chatForm = document.querySelector("#chat-form");
-const apiKeyInput = document.querySelector("#api-key");
-const websiteUrlInput = document.querySelector("#website-url");
-const questionInput = document.querySelector("#question-input");
-const messages = document.querySelector("#messages");
-const ingestStatus = document.querySelector("#ingest-status");
-const activePill = document.querySelector("#active-pill");
-const crawlButton = document.querySelector("#crawl-button");
-const askButton = document.querySelector("#ask-button");
+// DOM Elements
+const apiKeyInput = document.getElementById('groq-api-key');
+const urlInput = document.getElementById('website-url');
+const ingestBtn = document.getElementById('btn-ingest');
+const ingestStatus = document.getElementById('ingest-status');
+const activeUrlBadge = document.getElementById('active-url-badge');
 
-let activeWebsiteUrl = "";
-let loadingMessage = null;
+const chatMessages = document.getElementById('chat-messages');
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('btn-send');
 
-function setBusy(isBusy, label = "Working") {
-  crawlButton.disabled = isBusy;
-  askButton.disabled = isBusy;
-  activePill.textContent = isBusy ? label : activeWebsiteUrl ? `Active: ${shortenUrl(activeWebsiteUrl)}` : "Inactive";
-}
+// State
+let activeUrl = null;
 
-function setIngestStatus(message, type = "info") {
-  ingestStatus.textContent = message;
-  ingestStatus.classList.toggle("success", type === "success");
-  ingestStatus.classList.toggle("error", type === "error");
-}
+// Event Listeners
+ingestBtn.addEventListener('click', handleIngest);
+sendBtn.addEventListener('click', handleSend);
+chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleSend();
+});
 
-function addMessage(role, text, sources = []) {
-  const message = document.createElement("article");
-  message.className = `message ${role === "user" ? "user-message" : "assistant-message"}`;
+// Input handling to enable/disable button based on text
+chatInput.addEventListener('input', () => {
+    sendBtn.disabled = chatInput.value.trim().length === 0;
+});
 
-  const body = document.createElement("p");
-  body.textContent = text;
-  message.appendChild(body);
-
-  if (sources.length) {
-    const tags = document.createElement("div");
-    tags.className = "source-tags";
-
-    sources.slice(0, 5).forEach((source) => {
-      const tag = document.createElement("span");
-      tag.className = "source-tag";
-      tag.textContent = source.url || source.title || "Source";
-      tags.appendChild(tag);
-    });
-
-    message.appendChild(tags);
-  }
-
-  messages.appendChild(message);
-  messages.scrollTop = messages.scrollHeight;
-  return message;
-}
-
-function addLoadingMessage(text) {
-  removeLoadingMessage();
-  loadingMessage = addMessage("assistant", text);
-  loadingMessage.classList.add("loading-dots");
-}
-
-function removeLoadingMessage() {
-  if (loadingMessage) {
-    loadingMessage.remove();
-    loadingMessage = null;
-  }
-}
-
-function addErrorMessage(text) {
-  const message = addMessage("assistant", text);
-  message.classList.add("error-message");
-}
-
-async function postJson(path, payload) {
-  let response;
-
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    throw new Error("Cannot reach Flask backend. Make sure python backend/app.py is running on http://127.0.0.1:5000.");
-  }
-
-  const responseText = await response.text();
-  let data = {};
-
-  if (responseText) {
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      throw new Error(responseText.slice(0, 400));
+async function handleIngest() {
+    const url = urlInput.value.trim();
+    if (!url) {
+        showStatus('Please enter a website URL.', 'error');
+        return;
     }
-  }
 
-  if (!response.ok) {
-    throw new Error(data.error || data.message || `Request failed with status ${response.status}.`);
-  }
-
-  return data;
+    // UI Loading state
+    setIngestLoading(true);
+    showStatus('Ingesting website. This may take a minute...', 'success'); // using success color just for neutral info
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/crawl`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to ingest website');
+        }
+        
+        // Success
+        activeUrl = data.url;
+        activeUrlBadge.textContent = `Active: ${new URL(activeUrl).hostname}`;
+        activeUrlBadge.classList.remove('hidden');
+        activeUrlBadge.classList.add('active');
+        
+        showStatus(`Ingested successfully! (${data.document_count} pages, ${data.chunk_count} chunks)`, 'success');
+        
+        // Enable chat
+        chatInput.disabled = false;
+        addSystemMessage(`Website ingested successfully! You can now ask questions about ${activeUrl}.`);
+        
+    } catch (error) {
+        showStatus(error.message, 'error');
+    } finally {
+        setIngestLoading(false);
+    }
 }
 
-crawlForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const apiKey = apiKeyInput.value.trim();
-  const url = websiteUrlInput.value.trim();
-
-  if (!apiKey) {
-    setIngestStatus("Groq API key is required", "error");
-    return;
-  }
-
-  if (!url) {
-    setIngestStatus("Website URL is required", "error");
-    return;
-  }
-
-  try {
-    setBusy(true, "Crawling");
-    setIngestStatus("Ingesting website. This can take 30-90 seconds for larger sites...");
-    addLoadingMessage(`Ingesting ${url}`);
-
-    const data = await postJson("/crawl", {
-      api_key: apiKey,
-      url,
-    });
-
-    activeWebsiteUrl = url;
-    removeLoadingMessage();
-    setIngestStatus(
-      data.message || `Ingested successfully (${data.document_count || 0} pages, ${data.chunk_count || 0} chunks)`,
-      "success"
-    );
-    addMessage("assistant", data.message || "Website ingested successfully. Ask a question now.", data.sources || []);
-  } catch (error) {
-    removeLoadingMessage();
-    setIngestStatus(`Ingestion failed: ${error.message}`, "error");
-    addErrorMessage(`Ingestion failed: ${error.message}`);
-  } finally {
-    setBusy(false);
-  }
-});
-
-chatForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const apiKey = apiKeyInput.value.trim();
-  const question = questionInput.value.trim();
-  const url = activeWebsiteUrl || websiteUrlInput.value.trim();
-
-  if (!apiKey) {
-    addErrorMessage("Groq API key is required before asking questions.");
-    return;
-  }
-
-  if (!question) {
-    return;
-  }
-
-  addMessage("user", question);
-  questionInput.value = "";
-
-  try {
-    setBusy(true, "Answering");
-    addLoadingMessage("Searching the website context");
-
-    const data = await postJson("/chat", {
-      api_key: apiKey,
-      url,
-      question,
-    });
-
-    removeLoadingMessage();
-    addMessage("assistant", data.answer || data.message || "No answer returned.", data.sources || []);
-  } catch (error) {
-    removeLoadingMessage();
-    addErrorMessage(`Chat failed: ${error.message}`);
-  } finally {
-    setBusy(false);
-  }
-});
-
-function shortenUrl(url) {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url.slice(0, 24);
-  }
+async function handleSend() {
+    const question = chatInput.value.trim();
+    if (!question) return;
+    
+    const apiKey = apiKeyInput.value.trim();
+    
+    // Add user message to UI
+    addUserMessage(question);
+    
+    // Clear input
+    chatInput.value = '';
+    chatInput.disabled = true;
+    sendBtn.disabled = true;
+    
+    // Add temporary loading message for AI
+    const loadingId = addAILoadingMessage();
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                question: question,
+                api_key: apiKey
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to get answer');
+        }
+        
+        // Replace loading message with actual answer
+        replaceAILoadingMessage(loadingId, data.answer, data.sources);
+        
+    } catch (error) {
+        replaceAILoadingMessage(loadingId, `Error: ${error.message}`);
+    } finally {
+        chatInput.disabled = false;
+        chatInput.focus();
+    }
 }
 
+// UI Helpers
+function setIngestLoading(isLoading) {
+    const btnText = ingestBtn.querySelector('.btn-text');
+    const loader = ingestBtn.querySelector('.loader');
+    
+    ingestBtn.disabled = isLoading;
+    urlInput.disabled = isLoading;
+    
+    if (isLoading) {
+        btnText.classList.add('hidden');
+        loader.classList.remove('hidden');
+    } else {
+        btnText.classList.remove('hidden');
+        loader.classList.add('hidden');
+    }
+}
 
+function showStatus(message, type) {
+    ingestStatus.textContent = message;
+    ingestStatus.className = `status-message ${type}`;
+    ingestStatus.classList.remove('hidden');
+}
+
+function addUserMessage(text) {
+    const html = `
+        <div class="message user-message">
+            <div class="message-content">${escapeHTML(text)}</div>
+        </div>
+    `;
+    chatMessages.insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+}
+
+function addSystemMessage(text) {
+    const html = `
+        <div class="message system-message">
+            <div class="message-content">${escapeHTML(text)}</div>
+        </div>
+    `;
+    chatMessages.insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+}
+
+function addAILoadingMessage() {
+    const id = 'msg-' + Date.now();
+    const html = `
+        <div id="${id}" class="message ai-message">
+            <div class="message-content">
+                <div class="loader"></div>
+            </div>
+        </div>
+    `;
+    chatMessages.insertAdjacentHTML('beforeend', html);
+    scrollToBottom();
+    return id;
+}
+
+function replaceAILoadingMessage(id, text, sources = null) {
+    const msgElement = document.getElementById(id);
+    if (!msgElement) return;
+    
+    let contentHtml = `<p>${formatMarkdown(text)}</p>`;
+    
+    if (sources && sources.length > 0) {
+        // Unique sources
+        const uniqueUrls = [...new Set(sources.filter(s => s.url).map(s => s.url))];
+        if (uniqueUrls.length > 0) {
+            contentHtml += `<div class="sources">`;
+            uniqueUrls.forEach(url => {
+                const urlObj = new URL(url);
+                contentHtml += `<a href="${url}" target="_blank" class="source-badge">${urlObj.pathname || urlObj.hostname}</a>`;
+            });
+            contentHtml += `</div>`;
+        }
+    }
+    
+    msgElement.querySelector('.message-content').innerHTML = contentHtml;
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Extremely basic markdown and html escaping for safety and basic formatting
+function escapeHTML(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function formatMarkdown(str) {
+    const escaped = escapeHTML(str);
+    return escaped
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+}

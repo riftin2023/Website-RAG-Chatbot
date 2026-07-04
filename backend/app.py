@@ -1,61 +1,24 @@
 import os
-import time
 from pathlib import Path
+import sys
 
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from answer_with_groq import format_context
 from chunking import TextChunker
-from embedding_config import EMBEDDING_MODEL, MODEL_LABEL
+from embedding_config import EMBEDDING_MODEL
 from embeddings import EmbeddingGenerator
 from groq_generator import GroqAnswerGenerator
 from pipeline import RAGPipeline
-from retriever import Retriever
-from vector_config import VECTOR_DB, VECTOR_DB_LABEL
+from vector_config import VECTOR_DB
 from vector_store_factory import create_vector_store
-
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-VECTOR_OUTPUT_DIR = PROJECT_ROOT / "artifacts" / "vector_db" / VECTOR_DB
+from full_rag_pipeline import format_context, DEFAULT_OUTPUT_DIR
 
 app = Flask(__name__)
 CORS(app)
-
-current_website = {
-    "url": "",
-    "document_count": 0,
-    "chunk_count": 0,
-}
-
-
-def get_request_data():
-    return request.get_json(silent=True) or {}
-
-
-def configure_groq_api_key(data):
-    api_key = (data.get("api_key") or data.get("groq_api_key") or "").strip()
-
-    if api_key:
-        os.environ["GROQ_API_KEY"] = api_key
-
-    return api_key or os.getenv("GROQ_API_KEY", "")
-
-
-def summarize_sources(chunks, limit=5):
-    sources = []
-
-    for chunk in chunks[:limit]:
-        sources.append(
-            {
-                "title": chunk.get("title", "Untitled"),
-                "url": chunk.get("url", ""),
-                "text": chunk.get("text", ""),
-                "score": chunk.get("score"),
-            }
-        )
-
-    return sources
 
 
 @app.get("/")
@@ -64,120 +27,109 @@ def health_check():
         {
             "message": "Website RAG Chatbot API is running.",
             "endpoints": ["POST /crawl", "POST /chat"],
-            "embedding_model": MODEL_LABEL,
-            "vector_db": VECTOR_DB_LABEL,
-            "active_url": current_website["url"],
         }
     )
 
 
 @app.post("/crawl")
 def crawl_website():
-    started_at = time.perf_counter()
-    data = get_request_data()
+    data = request.get_json(silent=True) or {}
     url = (data.get("url") or "").strip()
-    max_depth = int(data.get("max_depth") or 1)
-    chunk_size = int(data.get("chunk_size") or 500)
-    chunk_overlap = int(data.get("chunk_overlap") or 80)
 
     if not url:
         return jsonify({"error": "url is required."}), 400
 
     try:
-        configure_groq_api_key(data)
-
-        ingestion_pipeline = RAGPipeline(max_depth=max_depth)
+        # Ingestion
+        ingestion_pipeline = RAGPipeline(max_depth=1)
         documents = ingestion_pipeline.ingest_website(url)
 
-        if not documents:
-            return jsonify({"error": "No pages were crawled from this website."}), 422
-
-        chunker = TextChunker(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-        )
+        # Chunking
+        chunker = TextChunker(chunk_size=500, chunk_overlap=80)
         chunks = chunker.chunk_documents(documents)
 
         if not chunks:
-            return jsonify({"error": "No chunks were generated from this website."}), 422
+            return jsonify({"error": "No content could be extracted from the website."}), 400
 
+        # Embeddings
         embedding_generator = EmbeddingGenerator(EMBEDDING_MODEL)
         texts = [chunk["text"] for chunk in chunks]
         embeddings, embedding_seconds = embedding_generator.encode(texts)
 
-        VECTOR_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        # Vector Store Creation
+        vector_output_dir = Path(DEFAULT_OUTPUT_DIR) / VECTOR_DB
+        vector_output_dir.mkdir(parents=True, exist_ok=True)
+
         vector_store = create_vector_store(
             embedding_dimension=int(embeddings.shape[1]),
-            output_dir=VECTOR_OUTPUT_DIR,
+            output_dir=vector_output_dir,
             reset=True,
         )
         vector_store.add(embeddings, chunks)
-        vector_store.save(VECTOR_OUTPUT_DIR)
-
-        current_website.update(
-            {
-                "url": url,
-                "document_count": len(documents),
-                "chunk_count": len(chunks),
-            }
-        )
-
-        total_seconds = time.perf_counter() - started_at
+        vector_store.save(vector_output_dir)
 
         return jsonify(
             {
-                "message": f"Ingested successfully ({len(documents)} pages, {len(chunks)} chunks)",
+                "message": "Website successfully ingested and indexed.",
                 "url": url,
                 "document_count": len(documents),
                 "chunk_count": len(chunks),
-                "embedding_model": MODEL_LABEL,
-                "vector_db": VECTOR_DB_LABEL,
-                "embedding_seconds": embedding_seconds,
-                "total_seconds": total_seconds,
-                "sources": summarize_sources(chunks),
             }
         )
-    except Exception as error:
-        return jsonify({"error": str(error)}), 500
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.post("/chat")
 def chat():
-    data = get_request_data()
+    data = request.get_json(silent=True) or {}
     question = (data.get("question") or "").strip()
-    top_k = int(data.get("top_k") or 5)
+    api_key = (data.get("api_key") or "").strip()
 
     if not question:
         return jsonify({"error": "question is required."}), 400
 
     try:
-        api_key = configure_groq_api_key(data)
+        vector_output_dir = Path(DEFAULT_OUTPUT_DIR) / VECTOR_DB
+        if not vector_output_dir.exists():
+            return jsonify({"error": "No website has been crawled yet. Please crawl a website first."}), 400
 
-        if not api_key:
-            return jsonify({"error": "Groq API key is required."}), 400
+        # Embed question
+        embedding_generator = EmbeddingGenerator(EMBEDDING_MODEL)
+        query_embeddings, _ = embedding_generator.encode([question])
 
-        retriever = Retriever(top_k=top_k)
-        retrieval = retriever.retrieve(question)
-        context = format_context(retrieval["results"])
+        # Load vector store (without reset)
+        vector_store = create_vector_store(
+            embedding_dimension=int(query_embeddings.shape[1]),
+            output_dir=vector_output_dir,
+            reset=False,
+        )
 
-        generator = GroqAnswerGenerator()
-        generation = generator.generate(question, context)
+        # Search
+        top_k = 5
+        retrieved_chunks = vector_store.search(query_embeddings[0], top_k=top_k)
+        context = format_context(retrieved_chunks)
+
+        # Generate answer
+        if api_key:
+            os.environ["GROQ_API_KEY"] = api_key
+
+        answer_generator = GroqAnswerGenerator()
+        generation = answer_generator.generate(question, context)
 
         return jsonify(
             {
+                "message": "Answer generated successfully.",
                 "question": question,
                 "answer": generation["answer"],
                 "used_llm": generation["used_llm"],
-                "model": generation["model"],
-                "temperature": generation["temperature"],
-                "top_k": retrieval["top_k"],
-                "query_embedding_seconds": retrieval["query_embedding_seconds"],
-                "active_url": current_website["url"],
-                "sources": summarize_sources(retrieval["results"], limit=top_k),
+                "sources": retrieved_chunks,
             }
         )
-    except Exception as error:
-        return jsonify({"error": str(error)}), 500
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
