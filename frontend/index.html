@@ -7,55 +7,52 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app-shell">
-    <section class="panel setup-panel" aria-labelledby="setup-title">
-      <div class="brand-row">
-        <div>
-          <p class="eyebrow">Website RAG Chatbot</p>
-          <h1 id="setup-title">Ask questions from any website</h1>
-        </div>
-        <span class="status-pill" id="status-pill">Idle</span>
+  <main class="workspace">
+    <aside class="setup-card" aria-labelledby="setup-title">
+      <div class="card-title">
+        <h1 id="setup-title">RAG Setup</h1>
+        <p>Configure the chatbot</p>
       </div>
 
-      <form id="crawl-form" class="crawl-form">
-        <label for="website-url">Website URL</label>
-        <div class="input-row">
-          <input id="website-url" name="website-url" type="url" placeholder="https://example.com" autocomplete="url" required>
-          <button type="submit" id="crawl-button">Crawl</button>
+      <form id="crawl-form" class="setup-form">
+        <div class="field-group">
+          <label for="api-key">Groq API Key</label>
+          <input id="api-key" name="api-key" type="password" placeholder="gsk_..." autocomplete="off">
+          <p class="field-note">Required to generate answers</p>
         </div>
+
+        <div class="field-group">
+          <label for="website-url">Website URL</label>
+          <input id="website-url" name="website-url" type="url" placeholder="https://example.com" required>
+        </div>
+
+        <button class="primary-button" id="crawl-button" type="submit">Ingest Website</button>
       </form>
-    </section>
 
-    <section class="chat-layout">
-      <section class="panel chat-panel" aria-labelledby="chat-title">
-        <div class="chat-header">
-          <div>
-            <p class="eyebrow">Chat</p>
-            <h2 id="chat-title">Question answering</h2>
-          </div>
-          <div class="spinner" id="loading-spinner" aria-hidden="true"></div>
+      <div class="ingest-status" id="ingest-status">
+        Waiting for website ingestion
+      </div>
+    </aside>
+
+    <section class="chat-card" aria-labelledby="chat-title">
+      <header class="chat-header">
+        <div>
+          <h2 id="chat-title">Website Chatbot</h2>
+          <p id="chat-subtitle">Ask questions from the currently ingested website.</p>
         </div>
+        <span class="active-pill" id="active-pill">Inactive</span>
+      </header>
 
-        <div class="answer-window" id="answer-window" aria-live="polite">
-          <p class="placeholder">Crawl a website, then ask a question. Answers will appear here with retrieved sources.</p>
-        </div>
+      <div class="messages" id="messages" aria-live="polite">
+        <article class="message assistant-message">
+          <p>Enter your Groq API key, ingest a website, then ask a question about its content.</p>
+        </article>
+      </div>
 
-        <form id="chat-form" class="chat-form">
-          <label for="question-input">Ask a question</label>
-          <div class="input-row question-row">
-            <input id="question-input" name="question-input" type="text" placeholder="What is this website about?" autocomplete="off" required>
-            <button type="submit" id="ask-button">Ask</button>
-          </div>
-        </form>
-      </section>
-
-      <aside class="panel source-panel" aria-labelledby="source-title">
-        <p class="eyebrow">Retrieved context</p>
-        <h2 id="source-title">Sources</h2>
-        <div id="sources-list" class="sources-list">
-          <p class="placeholder">No sources yet.</p>
-        </div>
-      </aside>
+      <form id="chat-form" class="chat-input-row">
+        <input id="question-input" name="question-input" type="text" placeholder="Ask a question about the website..." autocomplete="off" required>
+        <button id="ask-button" class="send-button" type="submit" aria-label="Send question">Send</button>
+      </form>
     </section>
   </main>
 

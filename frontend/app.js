@@ -2,54 +2,73 @@ const API_BASE_URL = "http://127.0.0.1:5000";
 
 const crawlForm = document.querySelector("#crawl-form");
 const chatForm = document.querySelector("#chat-form");
+const apiKeyInput = document.querySelector("#api-key");
 const websiteUrlInput = document.querySelector("#website-url");
 const questionInput = document.querySelector("#question-input");
-const answerWindow = document.querySelector("#answer-window");
-const sourcesList = document.querySelector("#sources-list");
-const statusPill = document.querySelector("#status-pill");
-const spinner = document.querySelector("#loading-spinner");
+const messages = document.querySelector("#messages");
+const ingestStatus = document.querySelector("#ingest-status");
+const activePill = document.querySelector("#active-pill");
 const crawlButton = document.querySelector("#crawl-button");
 const askButton = document.querySelector("#ask-button");
 
 let activeWebsiteUrl = "";
+let loadingMessage = null;
 
-function setLoading(isLoading, label = "Working") {
-  spinner.classList.toggle("is-visible", isLoading);
-  crawlButton.disabled = isLoading;
-  askButton.disabled = isLoading;
-  statusPill.textContent = isLoading ? label : "Ready";
+function setBusy(isBusy, label = "Working") {
+  crawlButton.disabled = isBusy;
+  askButton.disabled = isBusy;
+  activePill.textContent = isBusy ? label : activeWebsiteUrl ? `Active: ${shortenUrl(activeWebsiteUrl)}` : "Inactive";
 }
 
-function showError(message) {
-  answerWindow.innerHTML = `<p class="error">${escapeHtml(message)}</p>`;
-  statusPill.textContent = "Error";
+function setIngestStatus(message, type = "info") {
+  ingestStatus.textContent = message;
+  ingestStatus.classList.toggle("success", type === "success");
+  ingestStatus.classList.toggle("error", type === "error");
 }
 
-function showAnswer(answer) {
-  answerWindow.textContent = answer || "No answer returned.";
-}
+function addMessage(role, text, sources = []) {
+  const message = document.createElement("article");
+  message.className = `message ${role === "user" ? "user-message" : "assistant-message"}`;
 
-function showSources(sources = []) {
-  if (!sources.length) {
-    sourcesList.innerHTML = `<p class="placeholder">No sources returned.</p>`;
-    return;
+  const body = document.createElement("p");
+  body.textContent = text;
+  message.appendChild(body);
+
+  if (sources.length) {
+    const tags = document.createElement("div");
+    tags.className = "source-tags";
+
+    sources.slice(0, 5).forEach((source) => {
+      const tag = document.createElement("span");
+      tag.className = "source-tag";
+      tag.textContent = source.url || source.title || "Source";
+      tags.appendChild(tag);
+    });
+
+    message.appendChild(tags);
   }
 
-  sourcesList.innerHTML = sources.map((source, index) => {
-    const title = escapeHtml(source.title || `Source ${index + 1}`);
-    const url = escapeHtml(source.url || "");
-    const text = escapeHtml((source.text || "").slice(0, 220));
-    const score = typeof source.score === "number" ? `Score: ${source.score.toFixed(4)}` : "";
+  messages.appendChild(message);
+  messages.scrollTop = messages.scrollHeight;
+  return message;
+}
 
-    return `
-      <article class="source-item">
-        <h3>${index + 1}. ${title}</h3>
-        ${url ? `<a href="${url}" target="_blank" rel="noreferrer">${url}</a>` : ""}
-        ${score ? `<p>${score}</p>` : ""}
-        ${text ? `<p>${text}</p>` : ""}
-      </article>
-    `;
-  }).join("");
+function addLoadingMessage(text) {
+  removeLoadingMessage();
+  loadingMessage = addMessage("assistant", text);
+  loadingMessage.classList.add("loading-dots");
+}
+
+function removeLoadingMessage() {
+  if (loadingMessage) {
+    loadingMessage.remove();
+    loadingMessage = null;
+  }
+}
+
+function addErrorMessage(text) {
+  const message = addMessage("assistant", text);
+  message.classList.add("error-message");
 }
 
 async function postJson(path, payload) {
@@ -62,7 +81,7 @@ async function postJson(path, payload) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Request failed.");
+    throw new Error(data.error || data.message || "Request failed.");
   }
 
   return data;
@@ -71,63 +90,88 @@ async function postJson(path, payload) {
 crawlForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
+  const apiKey = apiKeyInput.value.trim();
   const url = websiteUrlInput.value.trim();
 
+  if (!apiKey) {
+    setIngestStatus("Groq API key is required", "error");
+    return;
+  }
+
   if (!url) {
-    showError("Enter a website URL first.");
+    setIngestStatus("Website URL is required", "error");
     return;
   }
 
   try {
-    setLoading(true, "Crawling");
-    answerWindow.innerHTML = `<p class="placeholder">Crawling and indexing ${escapeHtml(url)}...</p>`;
-    sourcesList.innerHTML = `<p class="placeholder">Waiting for retrieved sources.</p>`;
+    setBusy(true, "Crawling");
+    setIngestStatus("Ingesting website...");
+    addLoadingMessage(`Ingesting ${url}`);
 
-    const data = await postJson("/crawl", { url });
+    const data = await postJson("/crawl", {
+      api_key: apiKey,
+      url,
+    });
+
     activeWebsiteUrl = url;
-    statusPill.textContent = "Indexed";
-    showAnswer(data.message || "Website indexed successfully. Ask a question next.");
-    showSources(data.sources || []);
+    removeLoadingMessage();
+    setIngestStatus(
+      data.message || `Ingested successfully (${data.document_count || 0} pages, ${data.chunk_count || 0} chunks)`,
+      "success"
+    );
+    addMessage("assistant", data.message || "Website ingested successfully. Ask a question now.", data.sources || []);
   } catch (error) {
-    showError(error.message);
+    removeLoadingMessage();
+    setIngestStatus(error.message, "error");
+    addErrorMessage(error.message);
   } finally {
-    setLoading(false);
+    setBusy(false);
   }
 });
 
 chatForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
+  const apiKey = apiKeyInput.value.trim();
   const question = questionInput.value.trim();
+  const url = activeWebsiteUrl || websiteUrlInput.value.trim();
 
-  if (!question) {
-    showError("Enter a question first.");
+  if (!apiKey) {
+    addErrorMessage("Groq API key is required before asking questions.");
     return;
   }
 
+  if (!question) {
+    return;
+  }
+
+  addMessage("user", question);
+  questionInput.value = "";
+
   try {
-    setLoading(true, "Answering");
-    answerWindow.innerHTML = `<p class="placeholder">Searching the website context...</p>`;
+    setBusy(true, "Answering");
+    addLoadingMessage("Searching the website context");
 
     const data = await postJson("/chat", {
-      url: activeWebsiteUrl || websiteUrlInput.value.trim(),
+      api_key: apiKey,
+      url,
       question,
     });
 
-    showAnswer(data.answer || data.message || "No answer returned.");
-    showSources(data.sources || []);
+    removeLoadingMessage();
+    addMessage("assistant", data.answer || data.message || "No answer returned.", data.sources || []);
   } catch (error) {
-    showError(error.message);
+    removeLoadingMessage();
+    addErrorMessage(error.message);
   } finally {
-    setLoading(false);
+    setBusy(false);
   }
 });
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function shortenUrl(url) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url.slice(0, 24);
+  }
 }
