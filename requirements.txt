@@ -10,3 +10,5 @@ langchain
 langchain-core
 python-dotenv
 groq
+Flask
+Flask-Cors
