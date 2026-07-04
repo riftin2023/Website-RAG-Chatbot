@@ -72,16 +72,31 @@ function addErrorMessage(text) {
 }
 
 async function postJson(path, payload) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  let response;
 
-  const data = await response.json();
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    throw new Error("Cannot reach Flask backend. Make sure python backend/app.py is running on http://127.0.0.1:5000.");
+  }
+
+  const responseText = await response.text();
+  let data = {};
+
+  if (responseText) {
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      throw new Error(responseText.slice(0, 400));
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || data.message || "Request failed.");
+    throw new Error(data.error || data.message || `Request failed with status ${response.status}.`);
   }
 
   return data;
@@ -105,7 +120,7 @@ crawlForm.addEventListener("submit", async (event) => {
 
   try {
     setBusy(true, "Crawling");
-    setIngestStatus("Ingesting website...");
+    setIngestStatus("Ingesting website. This can take 30-90 seconds for larger sites...");
     addLoadingMessage(`Ingesting ${url}`);
 
     const data = await postJson("/crawl", {
@@ -122,8 +137,8 @@ crawlForm.addEventListener("submit", async (event) => {
     addMessage("assistant", data.message || "Website ingested successfully. Ask a question now.", data.sources || []);
   } catch (error) {
     removeLoadingMessage();
-    setIngestStatus(error.message, "error");
-    addErrorMessage(error.message);
+    setIngestStatus(`Ingestion failed: ${error.message}`, "error");
+    addErrorMessage(`Ingestion failed: ${error.message}`);
   } finally {
     setBusy(false);
   }
@@ -162,7 +177,7 @@ chatForm.addEventListener("submit", async (event) => {
     addMessage("assistant", data.answer || data.message || "No answer returned.", data.sources || []);
   } catch (error) {
     removeLoadingMessage();
-    addErrorMessage(error.message);
+    addErrorMessage(`Chat failed: ${error.message}`);
   } finally {
     setBusy(false);
   }
@@ -175,3 +190,5 @@ function shortenUrl(url) {
     return url.slice(0, 24);
   }
 }
+
+
